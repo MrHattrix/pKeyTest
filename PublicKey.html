@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Public and Private Key Encryption</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/forge/0.10.0/forge.min.js"></script>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">Public and Private Key Encryption</h1>
+        
+        <div class="form-group">
+            <label for="message-input">Message</label>
+            <textarea class="form-control" id="message-input" rows="3" placeholder="Enter a message to encrypt or decrypt"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="result-output">Result</label>
+            <textarea class="form-control" id="result-output" rows="3" readonly></textarea>
+        </div>
+
+        <div class="text-center">
+            <button class="btn btn-primary mx-2" id="encrypt-btn">Encrypt</button>
+            <button class="btn btn-secondary mx-2" id="decrypt-btn">Decrypt</button>
+            <button class="btn btn-success mx-2" id="copy-public-key-btn">Copy Public Key</button>
+            <button class="btn btn-info mx-2" id="enter-public-key-btn">Enter Other User's Public Key</button>
+        </div>
+    </div>
+
+    <script>
+        const { pki, util } = forge;
+        let userKeys = {};
+        let otherUserPublicKey = null;
+
+        // Generate keys on page load
+        window.onload = function() {
+            userKeys = pki.rsa.generateKeyPair(2048);
+            console.log("Public Key:", pki.publicKeyToPem(userKeys.publicKey));
+            console.log("Private Key:", pki.privateKeyToPem(userKeys.privateKey));
+        };
+
+        // Encrypt message
+        document.getElementById('encrypt-btn').addEventListener('click', function() {
+            const message = document.getElementById('message-input').value;
+            if (otherUserPublicKey) {
+                const encryptedMessage = otherUserPublicKey.encrypt(message);
+                document.getElementById('result-output').value = util.encode64(encryptedMessage);
+            } else {
+                alert("Please enter another user's public key first.");
+            }
+        });
+
+        // Decrypt message
+        document.getElementById('decrypt-btn').addEventListener('click', function() {
+            const encryptedMessage = util.decode64(document.getElementById('message-input').value);
+            try {
+                const decryptedMessage = userKeys.privateKey.decrypt(encryptedMessage);
+                document.getElementById('result-output').value = decryptedMessage;
+            } catch (error) {
+                alert("Decryption failed. Please make sure the input is an encrypted message.");
+            }
+        });
+
+        // Copy public key to clipboard
+        document.getElementById('copy-public-key-btn').addEventListener('click', function() {
+            const publicKeyPem = pki.publicKeyToPem(userKeys.publicKey);
+            navigator.clipboard.writeText(publicKeyPem).then(() => {
+                alert("Public key copied to clipboard!");
+            });
+        });
+
+        // Enter other user's public key
+        document.getElementById('enter-public-key-btn').addEventListener('click', function() {
+            const publicKeyPem = prompt("Please enter the public key of the other user:");
+            try {
+                otherUserPublicKey = pki.publicKeyFromPem(publicKeyPem);
+                alert("Public key stored successfully!");
+            } catch (error) {
+                alert("Invalid public key. Please try again.");
+            }
+        });
+    </script>
+</body>
+</html>
